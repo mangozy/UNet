@@ -52,6 +52,8 @@ class UNetExperiment:
         val_df = dataset[split["val"]]
         test_df  = dataset[split["test"]]
         
+        print(test_df.shape)
+        
         self.train_loader = DataLoader(SlicesDataset(train_df), batch_size=config.batch_size, shuffle=True, num_workers=0)
         self.val_loader = DataLoader(SlicesDataset(val_df), batch_size=config.batch_size, shuffle=True, num_workers=0)
 
@@ -234,7 +236,7 @@ class UNetExperiment:
         # In this method we will be computing metrics that are relevant to the task of 3D volume
         # segmentation. Therefore, unlike train and validation methods, we will do inferences
         # on full 3D volumes, much like we will be doing it when we deploy the model in the 
-        # clinical environment. 
+        # clinical environment.
 
         # TASK: Inference Agent is not complete. Go and finish it. Feel free to test the class
         # in a module of your own by running it against one of the data samples
@@ -247,6 +249,7 @@ class UNetExperiment:
 
         # for every in test set
         for i, x in enumerate(self.test_data):
+            
             pred_label = inference_agent.single_volume_inference(x["image"])
 
             # We compute and report Dice and Jaccard similarity coefficients which 

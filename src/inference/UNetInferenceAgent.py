@@ -60,5 +60,9 @@ class UNetInferenceAgent:
         # correct by running it on one of the volumes in your training set and comparing 
         # with the label in 3D Slicer.
         # <YOUR CODE HERE>
-
-        return # 
+        v = volume[0]
+        
+        print(v)
+        print("Haha...")
+        
+        return v # 

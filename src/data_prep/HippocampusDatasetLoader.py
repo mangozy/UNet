@@ -38,9 +38,6 @@ def LoadHippocampusData(root_dir, y_shape, z_shape):
         image, _ = load(os.path.join(image_dir, f))
         label, _ = load(os.path.join(label_dir, f))
         
-        # print("original image shape:", image.shape)
-        # print("original label shape:", label.shape)
-
         # TASK: normalize all images (but not labels) so that values are in [0..1] range
         # <YOUR CODE GOES HERE>
         # image = np.clip(image, 0., 1.)
@@ -55,34 +52,15 @@ def LoadHippocampusData(root_dir, y_shape, z_shape):
         
         ################################################# My Comments ###############################################
         # why don't you just say we need to keep each image with the same size of coronal and sagittal dimensions   #
-        # the raw data has different sizes of coronal and sagittal dimensions                                       #
+        # because the raw data has different sizes of coronal and sagittal dimensions                               #
+        ################################################# My Guess ##################################################
+        # My guess is the images and labels should be converted into (num_of_2D_images, 64, 64)                     #                                                                                            #
         #############################################################################################################
         
         # TASK: med_reshape function is not complete. Go and fix it!
-        # image = med_reshape(image, new_shape=(image.shape[0], y_shape, z_shape))
-        # label = med_reshape(label, new_shape=(label.shape[0], y_shape, z_shape)).astype(int)
         new_shape=(image.shape[0], y_shape, z_shape) # x_shape = axial, y_shape = coronal, z_shape = sagittal
         image = med_reshape(image, new_shape=new_shape)
-
-        ################################################ My Comments ################################################
-        # I reshaped images here already with the new_shape, which is (num_of_images, 64, 64)                       #
-        # I don't understahd why mentors recommended me to do the following code to reshape an image                #
-        # image = med_reshape(image, new_shape=new_shape) does the same thing already                               #
-        # (image == reshaped_image).all()                                                                           #
-        # Output: True                                                                                              #
-        #############################################################################################################
-        reshaped_image = np.zeros(new_shape)
-        reshaped_image[0:image.shape[0], 0:image.shape[1], 0:image.shape[2]] = image
-        label = med_reshape(label, new_shape=(label.shape[0], y_shape, z_shape)).astype(int)
-        
-        ################################################ My Guess ###################################################
-        # My guess is the images and labels should be converted into (num_of_2D_images, 64, 64)                  #                                                                                            #
-        #############################################################################################################
-        image = med_reshape(image, new_shape=(image.shape[0], y_shape, z_shape))
-        label = med_reshape(label, new_shape=(label.shape[0], y_shape, z_shape)).astype(int)
-        
-        # print("reshaped image shape:", reshaped_image.shape)
-        # print("reshaped label shape:", label.shape)
+        label = med_reshape(label, new_shape=new_shape).astype(int)
         
         # TASK: Why do we need to cast label to int?
         # ANSWER: Label is to be used as mask in the images. It is sort of like binary label. It can be "yes" or "nor" area.
