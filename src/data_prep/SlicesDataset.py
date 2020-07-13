@@ -51,7 +51,6 @@ class SlicesDataset(Dataset):
         #slice_data_2d = dict()
         # reshape images and segs
 
-        
         i2 = np.reshape(img2d, newshape=(1,64,64))
         img2d_cuda = torch.from_numpy(i2).to(device='cuda',dtype=torch.float)
         

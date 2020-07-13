@@ -42,7 +42,10 @@ def LoadHippocampusData(root_dir, y_shape, z_shape):
         # <YOUR CODE GOES HERE>
         # image = np.clip(image, 0., 1.)
         image = image.astype(np.single)/np.max(image)
-
+        
+        print("check image max and min...")
+        print(np.max(image), np.min(image))
+        
         # We need to reshape data since CNN tensors that represent minibatches
         # in our case will be stacks of slices and stacks need to be of the same size.
         # In the inference pathway we will need to crop the output to that

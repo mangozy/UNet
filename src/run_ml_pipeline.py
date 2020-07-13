@@ -4,10 +4,11 @@ This file contains code that will kick off training and testing processes
 import os
 import json
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from experiments.UNetExperiment import UNetExperiment
 from data_prep.HippocampusDatasetLoader import LoadHippocampusData
-from sklearn.model_selection import train_test_split
+
 
 class Config:
     """

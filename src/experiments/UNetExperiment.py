@@ -72,6 +72,9 @@ class UNetExperiment:
         # We will use a recursive UNet model from German Cancer Research Center, 
         # Division of Medical Image Computing. It is quite complicated and works 
         # very well on this task. Feel free to explore it or plug in your own model
+        # num_classes=3, in_channels=1, initial_filter_size=64, 
+        # kernel_size=3, num_downs=4, norm_layer=nn.InstanceNorm2d
+        
         self.model = UNet(num_classes=3)
         self.model.to(self.device)
 
@@ -104,17 +107,20 @@ class UNetExperiment:
             # TASK: You have your data in batch variable. Put the slices as 4D Torch Tensors of 
             # shape [BATCH_SIZE, 1, PATCH_SIZE, PATCH_SIZE] into variables data and target. 
             # Feed data to the model and feed target to the loss function
-
-            #print(batch.shape)
-            
             # print(batch.keys())
             # dict_keys(['indices', 'images', 'segs'])
-            
             # data = <YOUR CODE HERE>
             # data = data.to('cuda')
             data = batch['images']
-            # print("train data shape: ", data.shape)
-            # train data shape:  torch.Size([8, 1, 64, 64])
+            print("train data shape: ", data.shape)
+            #train data shape:  torch.Size([8, 1, 64, 64])
+            
+            # data_np = data.cpu().detach().numpy()
+            # plt.imshow(data_np[2][0]); plt.show()
+            # import matplotlib
+            # import numpy as np
+            # import matplotlib.pyplot as plt
+            # %matplotlib inline  
             
             # target = <YOUR CODE HERE>
             target = batch['segs']
@@ -122,7 +128,9 @@ class UNetExperiment:
             # train target shape: torch.Size([8, 1, 64, 64])
             
             prediction = self.model(data)
-
+            
+            # type(prediction)
+            
             # We are also getting softmax'd version of prediction to output a probability map
             # so that we can see how the model converges to the solution
             prediction_softmax = F.softmax(prediction, dim=1)
@@ -171,6 +179,7 @@ class UNetExperiment:
         loss_list = []
 
         with torch.no_grad():
+            
             for i, batch in enumerate(self.val_loader):
                 
                 # TASK: Write validation code that will compute loss on a validation sample
@@ -205,7 +214,7 @@ class UNetExperiment:
         Saves model parameters to a file in results directory
         """
         path = os.path.join(self.out_dir, "model.pth")
-
+        
         torch.save(self.model.state_dict(), path)
 
     def load_model_parameters(self, path=''):
