@@ -184,10 +184,17 @@ class UNetExperiment:
                 
                 # TASK: Write validation code that will compute loss on a validation sample
                 # <YOUR CODE HERE>
+                print("hahaha. what is the size of batch image?")
+                print("let's see")
                 data = batch['images']
                 target = batch['segs']
                 
+                # required data shape: torch.Size([8, 1, 64, 64])
+                # required target shape: torch.Size([8, 1, 64, 64])
                 prediction = self.model(data)
+                # print(prediction.shape)
+                # torch.Size([8, 3, 64, 64])
+                # print(prediction)
                 prediction_softmax = F.softmax(prediction, dim=1)
                 loss = self.loss_function(prediction, target[:, 0, :, :])
                 loss.requires_grad = True
@@ -207,7 +214,8 @@ class UNetExperiment:
             prediction_softmax, 
             prediction,
             (self.epoch+1) * 100)
-        print(f"Validation complete")
+        
+        print("\nValidation complete")
 
     def save_model_parameters(self):
         """
@@ -239,7 +247,7 @@ class UNetExperiment:
         Here we are computing a lot more metrics and returning
         a dictionary that could later be persisted as JSON
         """
-        print("Testing...")
+        print("Testing Beginning...")
         self.model.eval()
 
         # In this method we will be computing metrics that are relevant to the task of 3D volume
@@ -249,6 +257,8 @@ class UNetExperiment:
 
         # TASK: Inference Agent is not complete. Go and finish it. Feel free to test the class
         # in a module of your own by running it against one of the data samples
+        print("before entering inference agent...")
+        print("ok...")
         inference_agent = UNetInferenceAgent(model=self.model, device=self.device)
 
         out_dict = {}
@@ -258,6 +268,7 @@ class UNetExperiment:
 
         # for every in test set
         for i, x in enumerate(self.test_data):
+            print("test begins here...")
             
             pred_label = inference_agent.single_volume_inference(x["image"])
 

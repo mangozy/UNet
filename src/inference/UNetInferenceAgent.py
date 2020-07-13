@@ -65,21 +65,24 @@ class UNetInferenceAgent:
         
         # data = volume
 
-        for i, s in enumerate(volume):
-            pass
+        # for i, s in enumerate(volume):
+        #    pass
         
         # new_shape = (volume.shape[0], 1, volume.shape[1], volume.shape[2])
-        new_shape = (volume.shape[0], volume.shape[1], volume.shape[2])
-
-        new_volume = med_reshape(volume, new_shape=new_shape)
         
-        data = torch.from_numpy(new_volume).to(device='cuda',dtype=torch.float)
+        new_shape = (volume.shape[0], 1, volume.shape[1], volume.shape[2])
+        new_volume = np.reshape(volume, newshape=new_shape)
+        
+        print("See new model and data...")
+        print("stop right here....")
+        data = torch.from_numpy(new_volume).to(device=self.device,dtype=torch.float)
+                
         prediction = self.model(data)                                                     
-        print(prediction.shape)
-        pred = prediction[prediction.shape[0],1,prediction.shape[2],prediction.shape[3]]
-        print(pred.shape)            
-        pred_newshape = np.reshape(pred,newshape=(prediction.shape[0],prediction.shape[2],prediction.shape[3]))
-        print(pred_newshape.shape)
-        print("haha...")
+               
+        # pred = prediction[prediction.shape[0],1,prediction.shape[2],prediction.shape[3]]
+        # print(pred.shape)            
+        # pred_newshape = np.reshape(pred,newshape=(prediction.shape[0],prediction.shape[2],prediction.shape[3]))
+        # print(pred_newshape.shape)
+        # print("haha...")
         
-        return pred_newshape
+        return prediction
