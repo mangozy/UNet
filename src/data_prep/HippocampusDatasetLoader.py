@@ -43,8 +43,8 @@ def LoadHippocampusData(root_dir, y_shape, z_shape):
         # image = np.clip(image, 0., 1.)
         image = image.astype(np.single)/np.max(image)
         
-        print("check image max and min...")
-        print(np.max(image), np.min(image))
+        # print("check image max and min...")
+        # print(np.max(image), np.min(image))
         
         # We need to reshape data since CNN tensors that represent minibatches
         # in our case will be stacks of slices and stacks need to be of the same size.
@@ -66,7 +66,15 @@ def LoadHippocampusData(root_dir, y_shape, z_shape):
         label = med_reshape(label, new_shape=new_shape).astype(int)
         
         # TASK: Why do we need to cast label to int?
-        # ANSWER: Label is to be used as mask in the images. It is sort of like binary label. It can be "yes" or "nor" area.
+        # ANSWER: Label to be used as mask in the project is for classification purposes.
+        # For example, we have 3 classes in this project "background", "anterior", and "posterior".
+        # Also NumPy is better at handling numeric data, it makes more sense to use integers to represent classes.
+
+        # "labels": { 
+        #   "0": "background", 
+        #   "1": "Anterior", 
+        #   "2": "Posterior"
+        # }, 
 
         out.append({"image": image, "seg": label, "filename": f})
 

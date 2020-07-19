@@ -4,6 +4,7 @@ the experiment lifecycle
 """
 import os
 import time
+import nibabel as nib
 
 import numpy as np
 import torch
@@ -15,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from data_prep.SlicesDataset import SlicesDataset
 from utils.utils import log_to_tensorboard
-from utils.volume_stats import Dice3d, Jaccard3d
+from utils.volume_stats import Dice3d, Jaccard3d, Sensitivity, Specificity, F1_score
 from networks.RecursiveUNet import UNet
 from inference.UNetInferenceAgent import UNetInferenceAgent
 
@@ -51,9 +52,7 @@ class UNetExperiment:
         train_df = dataset[split["train"]]
         val_df = dataset[split["val"]]
         test_df  = dataset[split["test"]]
-        
-        print(test_df.shape)
-        
+
         self.train_loader = DataLoader(SlicesDataset(train_df), batch_size=config.batch_size, shuffle=True, num_workers=0)
         self.val_loader = DataLoader(SlicesDataset(val_df), batch_size=config.batch_size, shuffle=True, num_workers=0)
 
@@ -74,8 +73,8 @@ class UNetExperiment:
         # very well on this task. Feel free to explore it or plug in your own model
         # num_classes=3, in_channels=1, initial_filter_size=64, 
         # kernel_size=3, num_downs=4, norm_layer=nn.InstanceNorm2d
-        
-        self.model = UNet(num_classes=3)
+
+        self.model = UNet(num_classes=3) # 3 classes: {"0": "background", "1": "anterior", "2": "posterior"}
         self.model.to(self.device)
 
         # We are using a standard cross-entropy loss since the model output is essentially
@@ -103,42 +102,34 @@ class UNetExperiment:
         # Loop over our minibatches
         for i, batch in enumerate(self.train_loader):
             self.optimizer.zero_grad()
-
+            
             # TASK: You have your data in batch variable. Put the slices as 4D Torch Tensors of 
             # shape [BATCH_SIZE, 1, PATCH_SIZE, PATCH_SIZE] into variables data and target. 
             # Feed data to the model and feed target to the loss function
-            # print(batch.keys())
-            # dict_keys(['indices', 'images', 'segs'])
             # data = <YOUR CODE HERE>
             # data = data.to('cuda')
             data = batch['images']
-            print("train data shape: ", data.shape)
-            #train data shape:  torch.Size([8, 1, 64, 64])
             
-            # data_np = data.cpu().detach().numpy()
-            # plt.imshow(data_np[2][0]); plt.show()
             # import matplotlib
             # import numpy as np
             # import matplotlib.pyplot as plt
             # %matplotlib inline  
+            # data_np = data.cpu().detach().numpy()
+            # plt.imshow(data_np[2][0]); plt.show()
             
             # target = <YOUR CODE HERE>
             target = batch['segs']
-            # print("train target shape:", target.shape)
-            # train target shape: torch.Size([8, 1, 64, 64])
             
+            # prediction
             prediction = self.model(data)
-            
-            # type(prediction)
-            
+
             # We are also getting softmax'd version of prediction to output a probability map
             # so that we can see how the model converges to the solution
             prediction_softmax = F.softmax(prediction, dim=1)
-
             loss = self.loss_function(prediction, target[:, 0, :, :])
 
             # TASK: What does each dimension of variable prediction represent?
-            # ANSWER:
+            # ANSWER: prediction = [number_of_images, classes, width_of_image, height_of_image]
 
             loss.backward()
             self.optimizer.step()
@@ -184,17 +175,12 @@ class UNetExperiment:
                 
                 # TASK: Write validation code that will compute loss on a validation sample
                 # <YOUR CODE HERE>
-                print("hahaha. what is the size of batch image?")
-                print("let's see")
                 data = batch['images']
                 target = batch['segs']
                 
                 # required data shape: torch.Size([8, 1, 64, 64])
                 # required target shape: torch.Size([8, 1, 64, 64])
                 prediction = self.model(data)
-                # print(prediction.shape)
-                # torch.Size([8, 3, 64, 64])
-                # print(prediction)
                 prediction_softmax = F.softmax(prediction, dim=1)
                 loss = self.loss_function(prediction, target[:, 0, :, :])
                 loss.requires_grad = True
@@ -247,9 +233,7 @@ class UNetExperiment:
         Here we are computing a lot more metrics and returning
         a dictionary that could later be persisted as JSON
         """
-        print("Testing Beginning...")
         self.model.eval()
-
         # In this method we will be computing metrics that are relevant to the task of 3D volume
         # segmentation. Therefore, unlike train and validation methods, we will do inferences
         # on full 3D volumes, much like we will be doing it when we deploy the model in the 
@@ -257,36 +241,71 @@ class UNetExperiment:
 
         # TASK: Inference Agent is not complete. Go and finish it. Feel free to test the class
         # in a module of your own by running it against one of the data samples
-        print("before entering inference agent...")
-        print("ok...")
+
         inference_agent = UNetInferenceAgent(model=self.model, device=self.device)
 
         out_dict = {}
         out_dict["volume_stats"] = []
         dc_list = []
         jc_list = []
+        sens_list = []
+        spec_list = []
+        # f1_list = []
 
         # for every in test set
         for i, x in enumerate(self.test_data):
-            print("test begins here...")
             
-            pred_label = inference_agent.single_volume_inference(x["image"])
+            gt = x["seg"]   # test image ground truth        
+            ti = x["image"] # test image data
+            original_filename = x['filename'] # test image file name
+            pred_filename = 'predicted_'+x['filename'] # test image file name
+            
+            file_path = os.path.join("..\data","images",original_filename)
+            
+            original_images = nib.load(file_path)
+            
+            mask3d = np.zeros(ti.shape)
+            pred = inference_agent.single_volume_inference(ti)
+            mask3d = np.array(torch.argmax(pred, dim=1))
 
+            # Save predicted labels to local environment for further verification 
+            # with the original image NIFTI coordinate system
+            pred_coord = nib.Nifti1Image(mask3d, original_images.affine)           
+            pred_out_path = os.path.join("..\data","preds")
+            pred_out_file = os.path.join(pred_out_path,pred_filename)
+            
+            if not os.path.exists(pred_out_path):
+                os.makedirs(pred_out_path)
+
+            nib.save(pred_coord, pred_out_file)
+            
             # We compute and report Dice and Jaccard similarity coefficients which 
             # assess how close our volumes are to each other
 
             # TASK: Dice3D and Jaccard3D functions are not implemented. 
-            #  Complete the implementation as we discussed
+            # Complete the implementation as we discussed
             # in one of the course lessons, you can look up definition of Jaccard index 
             # on Wikipedia. If you completed it
             # correctly (and if you picked your train/val/test split right ;)),
             # your average Jaccard on your test set should be around 0.80
 
-            dc = Dice3d(pred_label, x["seg"])
-            jc = Jaccard3d(pred_label, x["seg"])
+            # a - prediction
+            # b - ground truth
+            dc = Dice3d(mask3d, gt)
             dc_list.append(dc)
+            
+            jc = Jaccard3d(mask3d, gt)
             jc_list.append(jc)
-
+            
+            sens = Sensitivity(mask3d, gt)
+            sens_list.append(sens)
+            
+            spec = Specificity(mask3d, gt)
+            spec_list.append(spec)
+            
+            # f1 = F1_score(mask3d, gt)
+            # f1_list.append(f1)
+            
             # STAND-OUT SUGGESTION: By way of exercise, consider also outputting:
             # * Sensitivity and specificity (and explain semantic meaning in terms of 
             #   under/over segmenting)
@@ -296,15 +315,32 @@ class UNetExperiment:
             out_dict["volume_stats"].append({
                 "filename": x['filename'],
                 "dice": dc,
-                "jaccard": jc
+                "jaccard": jc,
+                "sensitivity": sens,
+                "specificity": spec,
+                # "f1": f1,
                 })
-            print(f"{x['filename']} Dice {dc:.4f}. {100*(i+1)/len(self.test_data):.2f}% complete")
-
+            
+            print(f"{x['filename']} Dice {dc:.4f}, Jaccard {jc:.4f}, Sensitivity {sens:.4f}, and Specificity {spec:.4f}. {100*(i+1)/len(self.test_data):.2f}% complete")
+        
+        avg_dc = np.mean(dc_list)
+        avg_jc = np.mean(jc_list)
+        avg_sens = np.mean(sens_list)
+        avg_spec = np.mean(spec_list)
+        # avg_f1 = np.mean(f1_list)
+        
         out_dict["overall"] = {
-            "mean_dice": np.mean(dc_list),
-            "mean_jaccard": np.mean(jc_list)}
+            "mean_dice": avg_dc,
+            "mean_jaccard": avg_jc,
+            "mean_sensitivity": avg_sens,
+            "mean_specificity": avg_spec,
+            # "mean_f1": avg_f1,
+            }
 
         print("\nTesting complete.")
+        print("------------------------------")
+        print(f"Average Dice {avg_dc:.4f}, Average Jaccard {avg_jc:.4f}, Average Sensitivity {avg_sens:.4f}, and Average Specificity {avg_spec:.4f}")
+        
         return out_dict
 
     def run(self):

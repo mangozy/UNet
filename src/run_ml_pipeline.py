@@ -1,6 +1,7 @@
 """
 This file contains code that will kick off training and testing processes
 """
+
 import os
 import json
 import numpy as np
@@ -9,7 +10,6 @@ from sklearn.model_selection import train_test_split
 from experiments.UNetExperiment import UNetExperiment
 from data_prep.HippocampusDatasetLoader import LoadHippocampusData
 
-
 class Config:
     """
     Holds configuration parameters
@@ -17,8 +17,8 @@ class Config:
     def __init__(self):
         self.name = "Basic_unet"
         self.root_dir = r"..\data"
-        self.n_epochs = 1 # 10
-        self.learning_rate = 0.0002
+        self.n_epochs = 2 # 10
+        self.learning_rate = 0.0001
         self.batch_size = 8
         self.patch_size = 64
         self.test_results_dir = r"..\out"
@@ -40,8 +40,9 @@ if __name__ == "__main__":
     # In a real world scenario you would probably do multiple splits for 
     # multi-fold training to improve your model quality
 
-    keys = range(len(data))
-    print("Printing keys ...", keys)
+    # keys = range(len(data))
+    keys = np.arange((len(data)))
+    # print("Printing keys ...", keys)    
 
     # Here, random permutation of keys array would be useful in case if we do something like 
     # a k-fold training and combining the results. 
@@ -51,12 +52,12 @@ if __name__ == "__main__":
     # the array with indices of training volumes to be used for training, validation 
     # and testing respectively.
     # <YOUR CODE GOES HERE>
-    keys = np.arange((len(data)))
     
+    # 60:20:20 split using train_test_split()
     train, test = train_test_split(keys, test_size=0.2, shuffle=True, random_state=1)
     train, val = train_test_split(train, test_size=0.25, shuffle=True, random_state=1)
     
-    # print("Train Size:", len(train), "; Validation Size:", len(val), "; Test Size:", len(test))    
+    print("Train Size:", len(train), "; Validation Size:", len(val), "; Test Size:", len(test))    
     split={'train': np.array(train),'val': np.array(val),'test': np.array(test)}
 
     # Set up and run experiment
@@ -67,7 +68,8 @@ if __name__ == "__main__":
     # You could free up memory by deleting the dataset
     # as it has been copied into loaders
     # del dataset 
-
+    del test; del train; del val
+    
     # run training
     exp.run()
 

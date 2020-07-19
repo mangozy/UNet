@@ -6,8 +6,6 @@ import numpy as np
 
 from networks.RecursiveUNet import UNet
 
-from utils.utils import med_reshape
-
 class UNetInferenceAgent:
     """
     Stores model and parameters and some methods to handle inferencing
@@ -52,8 +50,6 @@ class UNetInferenceAgent:
         """
         self.model.eval()
         
-        # ((self.model(data)).cpu()).detach().numpy()
-
         # Assuming volume is a numpy array of shape [X,Y,Z] and we need to slice X axis
         # slices = []
       
@@ -62,27 +58,12 @@ class UNetInferenceAgent:
         # correct by running it on one of the volumes in your training set and comparing 
         # with the label in 3D Slicer.
         # <YOUR CODE HERE>
-        
-        # data = volume
-
-        # for i, s in enumerate(volume):
-        #    pass
-        
-        # new_shape = (volume.shape[0], 1, volume.shape[1], volume.shape[2])
-        
+               
         new_shape = (volume.shape[0], 1, volume.shape[1], volume.shape[2])
         new_volume = np.reshape(volume, newshape=new_shape)
-        
-        print("See new model and data...")
-        print("stop right here....")
-        data = torch.from_numpy(new_volume).to(device=self.device,dtype=torch.float)
-                
-        prediction = self.model(data)                                                     
                
-        # pred = prediction[prediction.shape[0],1,prediction.shape[2],prediction.shape[3]]
-        # print(pred.shape)            
-        # pred_newshape = np.reshape(pred,newshape=(prediction.shape[0],prediction.shape[2],prediction.shape[3]))
-        # print(pred_newshape.shape)
-        # print("haha...")
+        data = torch.from_numpy(new_volume.astype(np.single)/np.max(new_volume)).float().to(self.device)
+                
+        prediction = self.model(data)
         
-        return prediction
+        return np.squeeze(prediction.cpu().detach())

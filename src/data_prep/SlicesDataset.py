@@ -22,8 +22,7 @@ class SlicesDataset(Dataset):
         for i, d in enumerate(data):
             for j in range(d["image"].shape[0]):
                 self.slices.append((i, j))
-                
-        for i, d in enumerate(data):
+        # for i, d in enumerate(data):
             for img in d['image']:
                 self.img_2d.append(img)
             for seg in d['seg']:
@@ -40,27 +39,19 @@ class SlicesDataset(Dataset):
         Returns:
             Dictionary of 2 Torch Tensors of dimensions [1, W, H]
         """
-        slc = self.slices[idx]
+        slc   = self.slices[idx]
         img2d = self.img_2d[idx]
         seg2d = self.seg_2d[idx]
         
-        # slc = self.slices
-        # sample = dict()
-        # sample["id"] = slices
-
-        #slice_data_2d = dict()
-        # reshape images and segs
-
-        i2 = np.reshape(img2d, newshape=(1,64,64))
+        # reshape images and segs        
+        i2 = np.reshape(img2d, newshape=(1,img2d.shape[0],img2d.shape[1]))
         img2d_cuda = torch.from_numpy(i2).to(device='cuda',dtype=torch.float)
         
-        s2 = np.reshape(seg2d, newshape=(1,64,64))
+        s2 = np.reshape(seg2d, newshape=(1,seg2d.shape[0],seg2d.shape[1]))
         seg2d_cuda = torch.from_numpy(s2).to(device='cuda',dtype=torch.long)
         
         slice_data_2d = {"indices": slc, "images": img2d_cuda, "segs": seg2d_cuda}
-        
-        #print(sample); print(sample["id"])
-        
+               
         # You could implement caching strategy here if dataset is too large to fit
         # in memory entirely
         # Also this would be the place to call transforms if data augmentation is used
@@ -77,7 +68,7 @@ class SlicesDataset(Dataset):
         # dimension to a Numpy array
         # <YOUR CODE GOES HERE>
 
-        return slice_data_2d #sample
+        return slice_data_2d
 
     def __len__(self):
         """
